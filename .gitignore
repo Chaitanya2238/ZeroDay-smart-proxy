@@ -1,0 +1,15 @@
+# Environments
+venv/
+env/
+
+# Python Cache
+__pycache__/
+*.pyc
+
+# Logs and Databases
+*.log
+proxy.log
+
+# OS generated files
+.DS_Store
+Thumbs.db

@@ -1,0 +1,399 @@
+{
+  "info": {
+    "name": "Smart Proxy - Phase 1 Testing",
+    "description": "Comprehensive test collection for AI-Driven Reverse Proxy with Host Log Monitoring",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health & Status",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8000/health",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["health"]
+            },
+            "description": "Check if the proxy is healthy and get target backend info"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "GET Requests",
+      "item": [
+        {
+          "name": "Simple GET Request",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "User-Agent",
+                "value": "Postman-Test",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8000/api/test",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "test"]
+            },
+            "description": "Basic GET request to test routing and header forwarding"
+          },
+          "response": []
+        },
+        {
+          "name": "GET with Query Parameters",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8000/search?q=hello&limit=10&offset=0",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["search"],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "hello"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            },
+            "description": "GET request with multiple query parameters to test URL preservation"
+          },
+          "response": []
+        },
+        {
+          "name": "GET with Custom Headers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Custom-Header",
+                "value": "CustomValue123",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer token123abc",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8000/api/protected",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "protected"]
+            },
+            "description": "GET request with custom headers to verify header forwarding"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "POST Requests",
+      "item": [
+        {
+          "name": "POST with JSON Body",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"age\": 30,\n  \"active\": true\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8000/api/users",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "users"]
+            },
+            "description": "POST request with JSON body to test body preservation and forwarding"
+          },
+          "response": []
+        },
+        {
+          "name": "POST with Form Data",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "username",
+                  "value": "testuser",
+                  "type": "text"
+                },
+                {
+                  "key": "password",
+                  "value": "SecurePass123",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "http://localhost:8000/api/login",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "login"]
+            },
+            "description": "POST with form data to test different content types"
+          },
+          "response": []
+        },
+        {
+          "name": "POST with Plain Text Body",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "text/plain",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "This is a plain text request body for testing purposes."
+            },
+            "url": {
+              "raw": "http://localhost:8000/api/logs",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "logs"]
+            },
+            "description": "POST with plain text body to verify body handling"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "PUT Requests",
+      "item": [
+        {
+          "name": "PUT Update Resource",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": 1,\n  \"name\": \"Jane Doe\",\n  \"email\": \"jane@example.com\",\n  \"age\": 28\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8000/api/users/1",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "users", "1"]
+            },
+            "description": "PUT request to update a resource by ID"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "PATCH Requests",
+      "item": [
+        {
+          "name": "PATCH Partial Update",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"active\",\n  \"last_login\": \"2026-03-13T10:30:00Z\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8000/api/users/1",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "users", "1"]
+            },
+            "description": "PATCH request to partially update a resource"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "DELETE Requests",
+      "item": [
+        {
+          "name": "DELETE Resource",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8000/api/users/1",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "users", "1"]
+            },
+            "description": "DELETE request to remove a resource"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "OPTIONS Requests",
+      "item": [
+        {
+          "name": "OPTIONS Method Support",
+          "request": {
+            "method": "OPTIONS",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8000/api/users",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "users"]
+            },
+            "description": "OPTIONS request to check allowed methods"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Complex Scenarios",
+      "item": [
+        {
+          "name": "Large JSON Payload",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"users\": [\n    {\"id\": 1, \"name\": \"Alice\", \"email\": \"alice@example.com\"},\n    {\"id\": 2, \"name\": \"Bob\", \"email\": \"bob@example.com\"},\n    {\"id\": 3, \"name\": \"Charlie\", \"email\": \"charlie@example.com\"},\n    {\"id\": 4, \"name\": \"Diana\", \"email\": \"diana@example.com\"}\n  ],\n  \"metadata\": {\n    \"timestamp\": \"2026-03-13T10:30:00Z\",\n    \"version\": \"1.0\",\n    \"source\": \"postman-testing\"\n  }\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8000/api/batch/users",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "batch", "users"]
+            },
+            "description": "POST with large JSON payload to test body size handling"
+          },
+          "response": []
+        },
+        {
+          "name": "Nested Path Parameters",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8000/api/organizations/org123/projects/proj456/tasks/task789",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "organizations", "org123", "projects", "proj456", "tasks", "task789"]
+            },
+            "description": "GET with deeply nested path to verify path preservation"
+          },
+          "response": []
+        },
+        {
+          "name": "Request with Both Query & Body",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"process\",\n  \"data\": \"test\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8000/api/process?action=batch&priority=high&async=true",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "process"],
+              "query": [
+                {
+                  "key": "action",
+                  "value": "batch"
+                },
+                {
+                  "key": "priority",
+                  "value": "high"
+                },
+                {
+                  "key": "async",
+                  "value": "true"
+                }
+              ]
+            },
+            "description": "POST request with both query parameters and body"
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
