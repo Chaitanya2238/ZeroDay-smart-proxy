@@ -4,10 +4,21 @@ Test to check if the Google Gemini API key works at all.
 """
 import asyncio
 import httpx
+import os
 
 async def test_api_key():
     """Test if the API key is valid"""
-    api_key = "AIzaSyB3fSb9XX2yOlgOwjkkzN1ebjNUYGKFO0s"
+    api_key = os.getenv('GOOGLE_API_KEY')
+    
+    if not api_key:
+        print("=" * 70)
+        print("❌ No GOOGLE_API_KEY found!")
+        print("=" * 70)
+        print("\nSet the environment variable:")
+        print("  $env:GOOGLE_API_KEY = 'your-api-key-here'")
+        print("\nOr create a .env file in the smart-proxy directory with:")
+        print("  GOOGLE_API_KEY=your-api-key-here")
+        return False
     
     print("=" * 70)
     print("🔍 Testing Google Gemini API Key")

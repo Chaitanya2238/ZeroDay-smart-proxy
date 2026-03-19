@@ -13,8 +13,18 @@ from phase2.ai_engine import AISecurityAnalyzer
 async def test_gemini_integration():
     """Test that Gemini API integration works with the provided key"""
     
-    # Use the API key provided by the user
-    api_key = "AIzaSyB3fSb9XX2yOlgOwjkkzN1ebjNUYGKFO0s"
+    # Use the API key from environment variable
+    api_key = os.getenv('GOOGLE_API_KEY')
+    
+    if not api_key:
+        print("=" * 70)
+        print("❌ No GOOGLE_API_KEY found!")
+        print("=" * 70)
+        print("\nSet the environment variable:")
+        print("  $env:GOOGLE_API_KEY = 'your-api-key-here'")
+        print("\nOr create a .env file in the smart-proxy directory with:")
+        print("  GOOGLE_API_KEY=your-api-key-here")
+        return False
     
     print("=" * 70)
     print("🧪 Testing Google Gemini Integration")

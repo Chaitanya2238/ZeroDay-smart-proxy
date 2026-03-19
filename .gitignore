@@ -1,6 +1,8 @@
 # Environments
 venv/
 env/
+.env
+.env.local
 
 # Python Cache
 __pycache__/
@@ -10,6 +12,17 @@ __pycache__/
 *.log
 proxy.log
 
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
 # OS generated files
 .DS_Store
 Thumbs.db
+
+# Secrets and keys
+secrets/
+*.pem
+*.key
