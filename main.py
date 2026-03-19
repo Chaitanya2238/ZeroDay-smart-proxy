@@ -7,13 +7,12 @@ import logging
 from datetime import datetime
 from config import TARGET_BACKEND # Imported from your config file
 
-# Configure logging
+# Configure logging - console only (JSON logs go to proxy.log separately)
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('proxy.log'),
-        logging.StreamHandler()
+        logging.StreamHandler()  # Console only, not to file
     ]
 )
 logger = logging.getLogger(__name__)

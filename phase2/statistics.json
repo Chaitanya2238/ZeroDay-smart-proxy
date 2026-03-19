@@ -1,0 +1,12 @@
+{
+  "session_start": "2026-03-18T00:00:00",
+  "total_requests_processed": 0,
+  "requests_by_status": {
+    "passed_tier1": 0,
+    "flagged_tier1": 0,
+    "analyzed_by_ai": 0,
+    "threat_detected": 0
+  },
+  "threats_by_type": {},
+  "top_attacking_ips": {}
+}

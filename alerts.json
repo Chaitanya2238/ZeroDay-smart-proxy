@@ -1,0 +1,34 @@
+{
+  "alerts": [
+    {
+      "alert_id": 1,
+      "timestamp": "2026-03-19T11:54:49.224900",
+      "severity": 8,
+      "threat_type": "KNOWN_THREAT",
+      "confidence": 0.0,
+      "original_request": {
+        "method": "POST",
+        "path": "api/users",
+        "body_preview": "{'id': ' OR '1'='1'}",
+        "client_ip": "203.0.113.45",
+        "user_agent": null,
+        "response_status": 200
+      },
+      "tier1_analysis": {
+        "severity": 8,
+        "category": "KNOWN_THREAT",
+        "reason": "Static signatures: 2, Anomalies: 1",
+        "triggered_rules": [
+          "sql_injection:('\\s*OR\\s*'1'\\s*=\\s*'1)...",
+          "command_injection:(whoami|id|ls\\s+-la|cat\\s+/etc...",
+          "missing_user_agent"
+        ],
+        "signature_score": 8,
+        "anomaly_score": 3,
+        "requires_ai": false
+      },
+      "tier2_analysis": {},
+      "recommended_action": "investigate"
+    }
+  ]
+}
