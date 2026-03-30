@@ -4,6 +4,10 @@ import os
 from typing import Dict, Optional
 import httpx
 from datetime import datetime
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 class AISecurityAnalyzer:
     """

@@ -7,6 +7,10 @@ from datetime import datetime
 from typing import Dict, Optional
 import asyncio
 import logging
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 from .rules import SecurityRules
 from .ai_engine import AISecurityAnalyzer
@@ -173,8 +177,8 @@ class SecurityAnalyzerPipeline:
     """Main orchestrator for Tier 1 + Tier 2 analysis"""
     
     def __init__(self, proxy_log: str = '../proxy.log', check_interval: int = 5,
-                 alerts_file: str = 'alerts.json', state_file: str = 'analyzer_state.json',
-                 stats_file: str = 'statistics.json'):
+                 alerts_file: str = 'phase2/alerts.json', state_file: str = 'phase2/analyzer_state.json',
+                 stats_file: str = 'phase2/statistics.json'):
         self.proxy_log = proxy_log
         self.check_interval = check_interval
         self.alerts_file = alerts_file
@@ -184,7 +188,22 @@ class SecurityAnalyzerPipeline:
         self.ai_analyzer = None  # Lazy load only if needed
         self.alerts = []
         
+        # Load existing alerts from file (preserve history)
+        self.load_alerts()
+        
         logger.info(f"SecurityAnalyzerPipeline initialized (check_interval={check_interval}s)")
+    
+    def load_alerts(self):
+        """Load existing alerts from file to preserve detection history"""
+        if os.path.exists(self.alerts_file):
+            try:
+                with open(self.alerts_file, 'r') as f:
+                    data = json.load(f)
+                    self.alerts = data.get('alerts', [])
+                    logger.info(f"Loaded {len(self.alerts)} existing alerts from {self.alerts_file}")
+            except Exception as e:
+                logger.warning(f"Could not load alerts: {e}, starting fresh")
+                self.alerts = []
     
     def _init_ai_analyzer(self):
         """Lazy initialize AI analyzer (only if needed)"""

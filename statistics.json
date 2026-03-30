@@ -4,7 +4,7 @@
   "requests_by_status": {
     "passed_tier1": 92,
     "flagged_tier1": 30,
-    "analyzed_by_ai": 6,
+    "analyzed_by_ai": 2,
     "threat_detected": 0
   },
   "threats_by_type": {},
@@ -34,13 +34,13 @@
         "tier1",
         "tier1",
         "tier1",
-        "API_ERROR",
-        "API_ERROR",
         "tier1",
         "tier1",
         "tier1",
-        "API_ERROR",
-        "API_ERROR",
+        "tier1",
+        "tier1",
+        "tier1",
+        "tier1",
         "tier1"
       ]
     }
