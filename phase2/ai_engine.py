@@ -5,9 +5,13 @@ from typing import Dict, Optional
 import httpx
 from datetime import datetime
 from dotenv import load_dotenv
+import asyncio
+import logging
 
 # Load environment variables from .env file
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 class AISecurityAnalyzer:
     """
@@ -80,90 +84,135 @@ Respond ONLY with valid JSON in this exact format:
         """
         Send request to Google Gemini for security analysis
         Returns AI verdict with severity and reasoning
+        Implements exponential backoff for rate limiting (429 errors)
         """
         self.request_count += 1
         
-        try:
-            user_prompt = self._build_analysis_prompt(request_data)
-            
-            # Call Google Gemini API using REST endpoint
-            headers = {
-                "Content-Type": "application/json"
-            }
-            
-            payload = {
-                "contents": [
-                    {
-                        "role": "user",
-                        "parts": [
-                            {"text": f"{self.SYSTEM_PROMPT}\n\n{user_prompt}"}
-                        ]
-                    }
-                ],
-                "generationConfig": {
-                    "maxOutputTokens": self.MAX_TOKENS,
-                    "temperature": self.TEMPERATURE
-                }
-            }
-            
-            # Use API key in URL for authentication
-            url = f"{self.base_url}/{self.MODEL}:generateContent?key={self.api_key}"
-            
-            response = await self.client.post(url, headers=headers, json=payload)
-            
-            if response.status_code != 200:
-                error_detail = response.text
-                return {
-                    'severity': 3,  # Be conservative on API errors
-                    'threat_type': 'API_ERROR',
-                    'confidence': 0,
-                    'reasoning': f'LLM analysis failed: {error_detail[:100]}',
-                    'recommended_action': 'investigate',
-                    'error': error_detail
-                }
-            
-            result = response.json()
-            
-            # Extract text from Gemini response
-            try:
-                ai_response = result['candidates'][0]['content']['parts'][0]['text']
-            except (KeyError, IndexError) as e:
-                return {
-                    'severity': 2,
-                    'threat_type': 'PARSE_ERROR',
-                    'confidence': 0,
-                    'reasoning': f'Failed to parse Gemini response: {str(e)}',
-                    'recommended_action': 'investigate'
-                }
-            
-            # Try to extract JSON from response
-            try:
-                ai_analysis = json.loads(ai_response)
-            except json.JSONDecodeError:
-                # If response is not pure JSON, try to extract JSON object
-                import re
-                json_match = re.search(r'\{.*\}', ai_response, re.DOTALL)
-                if json_match:
-                    ai_analysis = json.loads(json_match.group())
-                else:
-                    return self._fallback_analysis(ai_response)
-            
-            # Estimate tokens (Gemini doesn't expose token counts in free tier)
-            # Rough estimation: ~4 chars per token
-            self.total_tokens_used += len(ai_response) // 4
-            
-            # Validate and normalize response
-            return self._normalize_ai_response(ai_analysis)
+        # Retry configuration
+        max_retries = 3
+        initial_delay = 2  # Start with 2 seconds
         
-        except Exception as e:
-            return {
-                'severity': 2,
-                'threat_type': 'ANALYSIS_ERROR',
-                'confidence': 0,
-                'reasoning': f'Unexpected error: {str(e)}',
-                'recommended_action': 'monitor',
-                'error': str(e)
-            }
+        for attempt in range(max_retries):
+            try:
+                user_prompt = self._build_analysis_prompt(request_data)
+                
+                # Call Google Gemini API using REST endpoint
+                headers = {
+                    "Content-Type": "application/json"
+                }
+                
+                payload = {
+                    "contents": [
+                        {
+                            "role": "user",
+                            "parts": [
+                                {"text": f"{self.SYSTEM_PROMPT}\n\n{user_prompt}"}
+                            ]
+                        }
+                    ],
+                    "generationConfig": {
+                        "maxOutputTokens": self.MAX_TOKENS,
+                        "temperature": self.TEMPERATURE
+                    }
+                }
+                
+                # Use API key in URL for authentication
+                url = f"{self.base_url}/{self.MODEL}:generateContent?key={self.api_key}"
+                
+                response = await self.client.post(url, headers=headers, json=payload)
+                
+                # Handle rate limiting with exponential backoff
+                if response.status_code == 429:
+                    if attempt < max_retries - 1:
+                        delay = initial_delay * (2 ** attempt)  # 2, 4, 8 seconds
+                        logger.warning(f"Rate limited (429). Retry {attempt + 1}/{max_retries - 1} after {delay}s delay")
+                        await asyncio.sleep(delay)
+                        continue
+                    else:
+                        logger.warning(f"Rate limited after {max_retries} attempts. Returning conservative result.")
+                        return {
+                            'severity': 3,
+                            'threat_type': 'API_RATE_LIMITED',
+                            'confidence': 0,
+                            'reasoning': 'Gemini API rate limited - use Tier 1 assessment',
+                            'recommended_action': 'investigate',
+                            'error': 'Rate limited'
+                        }
+                
+                if response.status_code != 200:
+                    error_detail = response.text
+                    return {
+                        'severity': 3,  # Be conservative on API errors
+                        'threat_type': 'API_ERROR',
+                        'confidence': 0,
+                        'reasoning': f'LLM analysis failed: {error_detail[:100]}',
+                        'recommended_action': 'investigate',
+                        'error': error_detail
+                    }
+                
+                result = response.json()
+                
+                # Extract text from Gemini response
+                try:
+                    ai_response = result['candidates'][0]['content']['parts'][0]['text']
+                except (KeyError, IndexError) as e:
+                    return {
+                        'severity': 2,
+                        'threat_type': 'PARSE_ERROR',
+                        'confidence': 0,
+                        'reasoning': f'Failed to parse Gemini response: {str(e)}',
+                        'recommended_action': 'investigate'
+                    }
+                
+                # Try to extract JSON from response
+                try:
+                    ai_analysis = json.loads(ai_response)
+                except json.JSONDecodeError:
+                    # If response is not pure JSON, try to extract JSON object
+                    import re
+                    json_match = re.search(r'\{.*\}', ai_response, re.DOTALL)
+                    if json_match:
+                        ai_analysis = json.loads(json_match.group())
+                    else:
+                        return self._fallback_analysis(ai_response)
+                
+                # Estimate tokens (Gemini doesn't expose token counts in free tier)
+                # Rough estimation: ~4 chars per token
+                self.total_tokens_used += len(ai_response) // 4
+                
+                logger.info(f"Tier 2 analysis successful (attempt {attempt + 1})")
+                
+                # Validate and normalize response
+                return self._normalize_ai_response(ai_analysis)
+                
+            except asyncio.TimeoutError:
+                if attempt < max_retries - 1:
+                    delay = initial_delay * (2 ** attempt)
+                    logger.warning(f"Timeout. Retry {attempt + 1}/{max_retries - 1} after {delay}s delay")
+                    await asyncio.sleep(delay)
+                    continue
+            except Exception as e:
+                logger.error(f"Attempt {attempt + 1} failed: {str(e)}")
+                if attempt == max_retries - 1:
+                    return {
+                        'severity': 2,
+                        'threat_type': 'ANALYSIS_ERROR',
+                        'confidence': 0,
+                        'reasoning': f'Unexpected error after {max_retries} attempts: {str(e)}',
+                        'recommended_action': 'monitor',
+                        'error': str(e)
+                    }
+                await asyncio.sleep(initial_delay * (2 ** attempt))
+                continue
+        
+        # Fallback if all retries exhausted
+        return {
+            'severity': 2,
+            'threat_type': 'ANALYSIS_FAILED',
+            'confidence': 0,
+            'reasoning': 'All API attempts failed',
+            'recommended_action': 'monitor'
+        }
     
     def _normalize_ai_response(self, ai_response: Dict) -> Dict:
         """Normalize and validate AI response structure"""

@@ -245,9 +245,28 @@ Response Status: 200
 2026-03-30 11:49:45,053 - __main__ - WARNING - THREAT DETECTED: KNOWN_THREAT (severity=8)
 2026-03-30 11:49:45,053 - __main__ - WARNING - THREAT DETECTED: KNOWN_THREAT (severity=9)
 2026-03-30 11:49:50,076 - __main__ - INFO - Sending to Tier 2 (AI):
+2026-03-30 11:49:50,250 - phase2.ai_engine - INFO - Tier 2 analysis successful
 ```
 
 ✅ This means threats are being detected!
+
+**Important Note on Rate Limiting (429):**
+
+```
+2026-03-30 12:50:56,957 - httpx - INFO - HTTP Request: ... "HTTP/1.1 429 Too Many Requests"
+2026-03-30 12:50:56,963 - phase2.ai_engine - WARNING - Rate limited (429). Retry 1/2 after 2s delay
+2026-03-30 12:51:09,963 - phase2.ai_engine - INFO - Tier 2 analysis successful (attempt 2)
+```
+
+This is **NORMAL** - Gemini API has a **60 requests/minute limit** on the free tier.
+
+**Current Behavior:**
+
+- ✅ Tier 1 (regex rules) **always works** - no API calls
+- ⚠️ Tier 2 (AI) **retries automatically** - exponential backoff (2s, 4s, 8s)
+- ✅ Regardless of rate limiting, **alerts are still saved** from Tier 1 detection
+
+All threats are detected and saved - the rate limiting only affects whether AI analysis completes.
 
 ---
 
@@ -348,14 +367,15 @@ Each one will be logged and analyzed!
 
 ## Troubleshooting Manual Testing
 
-| Problem                      | Solution                                                                       |
-| ---------------------------- | ------------------------------------------------------------------------------ |
-| **Mock backend won't start** | Check port 3000 is free: `netstat -ano \| findstr :3000`                       |
-| **Proxy connection refused** | Make sure uvicorn is running, not `python main.py`                             |
-| **Analyzer not detecting**   | Check: 1) API key set, 2) proxy.log path correct, 3) analyzer terminal running |
-| **No alerts generated**      | Wait 5+ seconds - analyzer checks every 5 seconds                              |
-| **404 errors**               | Make sure all 3 services running (mock backend, proxy, analyzer)               |
-| **API rate limited**         | Gemini has 60 req/min limit - space out attacks or use Tier 1 only             |
+| Problem                            | Solution                                                                                                                                       |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Mock backend won't start**       | Check port 3000 is free: `netstat -ano \| findstr :3000`                                                                                       |
+| **Proxy connection refused**       | Make sure uvicorn is running, not `python main.py`                                                                                             |
+| **Analyzer not detecting**         | Check: 1) API key set, 2) proxy.log path correct, 3) analyzer terminal running                                                                 |
+| **No alerts generated**            | Wait 5+ seconds - analyzer checks every 5 seconds                                                                                              |
+| **404 errors**                     | Make sure all 3 services running (mock backend, proxy, analyzer)                                                                               |
+| **HTTP 429 Too Many Requests**     | ✅ Normal! Gemini has 60 req/min limit. Analyzer auto-retries with backoff (2s, 4s, 8s). Tier 1 detection still works.                         |
+| **Tier 2 analysis not completing** | Likely due to 429 rate limiting. Check analyzer logs for "Rate limited" - this is expected. Your alerting will continue with Tier 1 detection. |
 
 ---
 
@@ -388,17 +408,24 @@ Each one will be logged and analyzed!
   "alert_id": 1,
   "severity": 8,
   "threat_type": "KNOWN_THREAT",
-  "confidence": 0,
+  "confidence": 0,  ← 0 = Tier 1 only, >0 = Tier 2 AI confidence
   "tier1_analysis": {
     "severity": 8,
     "category": "KNOWN_THREAT",
-    "triggered_rules": ["SQL_INJECTION_PATTERN"]
+    "triggered_rules": ["SQL_INJECTION_PATTERN"],
+    "requires_ai": false
   },
-  "tier2_analysis": {}
+  "tier2_analysis": {}  ← Empty if Tier 1 severity >= 7 (confident enough)
 }
 ```
 
 **→ Only threats with severity >= 7 create alerts**
+
+**Understanding Confidence:**
+
+- **Confidence: 0.0%** = Threat detected by **Tier 1 (rules)** alone - high confidence pattern match
+- **Confidence: >0.5** = Threat confirmed by **Tier 2 (Gemini AI)** - semantic analysis added
+- **Confidence: 0.0 with "API_RATE_LIMITED"** = Tier 2 couldn't complete due to 429, but Tier 1 still detected it ✅
 
 ---
 
@@ -410,13 +437,43 @@ Each one will be logged and analyzed!
   "requests_by_status": {
     "passed_tier1": 0,        ← Normal requests
     "flagged_tier1": 20,      ← Suspicious requests
-    "analyzed_by_ai": 3,      ← Sent to Gemini
-    "threat_detected": 2      ← Final threats
+    "analyzed_by_ai": 3,      ← Sent to Gemini (some may have failed due to 429)
+    "threat_detected": 2      ← Final confirmed threats
   }
 }
 ```
 
 **→ Summary of detection statistics**
+
+---
+
+### **Two-Tier Detection Explained**
+
+```
+Attack Input (20 attacks)
+    ↓
+Tier 1: Pattern Matching (446 regex signatures)
+    ├─ Detectsknown threats instantly ✅
+    ├─ No API calls required ✅
+    └─ Returns severity score: 0-10
+
+    ↓ [If severity 4-6: Ambiguous?]
+    ↓ [If severity >= 7: Confident, create alert immediately]
+    ↓
+Tier 2: AI Analysis (Google Gemini)
+    ├─ Analyze subtle/polyglot attacks
+    ├─ Requires API call (subject to rate limiting)
+    ├─ Returns confidence score: 0.0-1.0
+    └─ Updates alert with AI reasoning
+
+    ↓
+Result: Alert Created & Saved to alerts.json ✅
+(whether Tier 2 succeeded or hit 429)
+```
+
+**Key Point:** Tier 1 alone is sufficient for most detections. Tier 2 is for edge cases.
+
+**With Rate Limiting:** You still get Tier 1 detections + Tier 2 retries automatically!
 
 ---
 

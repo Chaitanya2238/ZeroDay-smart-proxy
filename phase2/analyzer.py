@@ -218,22 +218,30 @@ class SecurityAnalyzerPipeline:
         """
         Execute full analysis pipeline for a request
         Returns alert if threat detected, None otherwise
+        
+        Tier 1 Decision Logic:
+        - Score > 7:   KNOWN_THREAT → Create alert immediately (skip Tier 2)
+        - Score 4-7:   SUSPICIOUS → Send to Tier 2 for AI verification
+        - Score < 4:   NORMAL → Ignore
         """
         # Tier 1: Rule-based filtering
         tier1_result = SecurityRules.analyze(log_entry)
         
-        logger.debug(f"Tier 1 analysis: {log_entry.get('path')} -> severity={tier1_result['severity']}")
+        logger.debug(f"Tier 1 analysis: {log_entry.get('path')} -> severity={tier1_result['severity']}, requires_ai={tier1_result['requires_ai']}")
         
         tier2_result = None
         
-        # Tier 2: AI analysis if needed
+        # Tier 2: AI analysis only for ambiguous cases (4-7 score)
         if tier1_result['requires_ai']:
-            logger.info(f"Sending to Tier 2 (AI): {log_entry.get('path')}")
+            logger.info(f"Sending to Tier 2 (AI): {log_entry.get('path')} (Score {tier1_result['severity']} is ambiguous)")
             self._init_ai_analyzer()
             
             if self.ai_analyzer:
                 tier2_result = await self.ai_analyzer.analyze(log_entry)
                 logger.debug(f"Tier 2 result: severity={tier2_result.get('severity')}")
+        else:
+            if tier1_result['severity'] > 7:
+                logger.debug(f"Tier 1 confidence high (score={tier1_result['severity']}) → Skipping Tier 2")
         
         # Update statistics
         self.stats_tracker.update(log_entry, tier1_result, tier2_result)
@@ -241,7 +249,7 @@ class SecurityAnalyzerPipeline:
         # Determine if alert should be generated
         final_severity = tier2_result.get('severity', tier1_result['severity']) if tier2_result else tier1_result['severity']
         
-        if final_severity >= 7:  # Alert threshold
+        if final_severity >= 4:  # Alert threshold (lowered to catch all zero-day threats)
             alert = self._create_alert(log_entry, tier1_result, tier2_result, final_severity)
             logger.warning(f"THREAT DETECTED: {alert['threat_type']} (severity={final_severity})")
             return alert

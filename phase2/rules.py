@@ -62,6 +62,43 @@ class SecurityRules:
             r'(<!ENTITY.*SYSTEM)',  # SYSTEM entity reference
             r'(xml version)',  # XML declaration with potential XXE
         ],
+        'nosql_injection': [
+            r'(\{\s*\$ne)',  # {"$ne": ""} MongoDB
+            r'(\{\s*\$gt)',  # {"$gt": ""} MongoDB
+            r'(\{\s*\$regex)',  # {"$regex": ""} MongoDB
+            r'(db\.[a-z]+\.(insert|find|update))',  # MongoDB patterns
+        ],
+        'crlf_injection': [
+            r'(%0d%0a)',  # URL encoded CRLF
+            r'(\\r\\n)',  # Escaped CRLF
+            r'(\r\n)',  # Actual CRLF
+            r'(Set-Cookie:)',  # Header injection
+        ],
+        'file_inclusion': [
+            r'(file://)',  # file:// protocol
+            r'(php://)',  # php:// wrapper
+            r'(zip://)',  # zip:// wrapper
+            r'(phar://)',  # phar:// wrapper
+        ],
+        'buffer_overflow': [
+            r'(A{1000,})',  # Long string of A's
+            r'(%x%x%x%x)',  # Format string
+            r'(\x41{100,})',  # Hex A's
+        ],
+        'authentication_bypass': [
+            r'(Bearer\s+eyJ[A-Za-z0-9_-]+)',  # JWT token
+            r'(+admin|bypass|auth)',  # Common bypass keywords
+            r'(session_id=.*|token=)',  # Session manipulation
+        ],
+        'privilege_escalation': [
+            r'(role\s*[=:]\s*admin)',  # role assignment
+            r'(user_id|uid|user_role)',  # Privilege related params
+            r'(is_admin|admin_flag)',  # Admin flags
+        ],
+        'scanner_detection': [
+            r'(sqlmap|nikto|nmap|masscan|nessus)',  # Scanner user agents
+            r'(Burp|ZAP|Metasploit)',  # Penetration testing tools
+        ],
     }
     
     # Anomaly Detection Heuristics
@@ -159,6 +196,12 @@ class SecurityRules:
                             max_score = max(max_score, 8)
                         elif attack_type in ['ldap_injection', 'xxe_attack']:
                             max_score = max(max_score, 9)
+                        elif attack_type in ['nosql_injection', 'crlf_injection', 'buffer_overflow']:
+                            max_score = max(max_score, 7)
+                        elif attack_type in ['file_inclusion', 'authentication_bypass', 'privilege_escalation']:
+                            max_score = max(max_score, 7)
+                        elif attack_type in ['scanner_detection']:
+                            max_score = max(max_score, 5)
                         else:
                             max_score = max(max_score, 6)
                 except re.error:
