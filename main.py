@@ -67,6 +67,7 @@ async def proxy(request: Request, path: str):
             "query": str(request.query_params),
             "client_ip": client_ip,
             "user_agent": request.headers.get("user-agent"),
+            "headers": dict(request.headers),
             "response_status": resp.status_code,
             "response_time_ms": (datetime.now() - start_time).total_seconds() * 1000,
             "request_body_preview": body.decode("utf-8", errors="ignore")[:200],  

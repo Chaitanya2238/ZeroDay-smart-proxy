@@ -217,8 +217,9 @@ async def test_zeroday_attacks():
             else:
                 failed += 1
             
-            # Small delay between attacks
-            await asyncio.sleep(0.5)
+            # Delay between attacks to avoid rate limiting and let analyzer process each request
+            # Increased from 2.0s to better handle API rate limits
+            await asyncio.sleep(3.0)
     
     # Summary
     print("\n" + "="*70)

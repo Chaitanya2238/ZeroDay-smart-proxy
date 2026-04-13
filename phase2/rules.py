@@ -2,6 +2,7 @@
 import re
 import json
 from typing import Dict, Tuple
+from urllib.parse import unquote, unquote_plus
 
 class SecurityRules:
     """
@@ -16,15 +17,18 @@ class SecurityRules:
     # Static Signature Patterns (Known Attack Vectors)
     STATIC_SIGNATURES = {
         'sql_injection': [
-            r"('\s*OR\s*'1'\s*=\s*'1)",  # ' OR '1'='1
-            r'("\s*OR\s*"1"\s*=\s*"1)',  # " OR "1"="1
+            r"('\s*(?:OR|AND)\s*'(?:1|true)')",  # ' OR '1'='1
+            r'("\s*(?:OR|AND)\s*"(?:1|true)")',  # " OR "1"="1
             r'(UNION\s+SELECT)',  # UNION SELECT injection
-            r'(DROP\s+TABLE)',  # DROP TABLE attack
+            r'(DROP\s+(?:TABLE|DATABASE))',  # DROP TABLE/DATABASE
             r'(INSERT\s+INTO)',  # INSERT INTO injection
             r'(DELETE\s+FROM)',  # DELETE FROM injection
-            r'(EXEC\s*\()',  # EXEC() stored procedure
+            r'(EXEC\s*\(|EXECUTE\s*\()',  # EXEC() stored procedure
             r'(DECLARE\s+@)',  # DECLARE variable injection
-            r'(;.*--)',  # SQL comment injection
+            r'(;\s*(?:--|#))',  # SQL comment injection (-- or MySQL #)
+            r'(UNION.*FROM)',  # UNION...FROM pattern
+            r'(OR\s+1\s*=\s*1)',  # OR 1=1
+            r'(%27\s*OR)',  # URL-encoded ' OR
         ],
         'xss_attack': [
             r'(<script[^>]*>)',  # <script> tags
@@ -32,72 +36,110 @@ class SecurityRules:
             r'(onerror\s*=)',  # onerror event handler
             r'(onload\s*=)',  # onload event handler
             r'(onclick\s*=)',  # onclick event handler
-            r'(alert\s*\()',  # alert() function
+            r'(alert\s*\()',  # alert() function call
             r'(<iframe[^>]*>)',  # iframe injection
             r'(eval\s*\()',  # eval() function
+            r'(<img[^>]*on)',  # img tag with event handler
+            r'(src\s*=\s*x)',  # img src=x (common XSS)
+            r'(<svg[^>]*on)',  # svg with event handler
+            r'(<body[^>]*on)',  # body tag with event handler
+            r'(\$\{.*\})',  # Expression language injection
+            r'(%3Cscript)',  # URL-encoded <script
+            r'(&lt;script)',  # HTML-encoded <script
         ],
         'command_injection': [
-            r'(;\s*rm\s+-rf)',  # ; rm -rf
-            r'(\|\s*cat\s+)',  # | cat /
-            r'(\$\{.*\})',  # ${} template injection
+            r'(;\s*(?:rm|cat|whoami|id|ls)\s+)',  # ; rm -rf or ; cat /
+            r'(\|\s*(?:cat|grep|ls|nc))',  # | cat or | grep
+            r'(\$\{[^}]*\})',  # ${} template injection
             r'(`[^`]*`)',  # Backtick command execution
             r'(\$\([^)]*\))',  # $() command substitution
-            r'(whoami|id|ls\s+-la|cat\s+/etc)',  # Common commands
+            r'(whoami|id\s+|ls\s+-la|cat\s+/etc)',  # Common Unix commands
+            r'(&&\s*(?:dir|type|tasklist|whoami))',  # && Windows commands
+            r'(ping\s+&&)',  # ping && pattern specifically
+            r'(&&\s*dir)',  # && dir pattern
+            r'(&&\s*(?:type|tasklist|cmd))',  # && with other Windows commands
         ],
         'path_traversal': [
             r'(\.\./)',  # ../
             r'(\.\.\\)',  # ..\
-            r'(%2e%2e)',  # URL encoded ../
+            r'(%2e%2e/)',  # URL encoded ../
+            r'(%2e%2e\\)',  # URL encoded ..\
+            r'(file\s*=\s*\.\.)',  # file=.. parameter
+            r'(path\s*=\s*\.\.)',  # path=.. parameter
             r'(/etc/passwd)',  # Linux system file
+            r'(/etc/shadow)',  # Linux shadow file
             r'(\\windows\\)',  # Windows system path
+            r'(\w:\\windows)',  # Windows drive path
             r'(/proc/)',  # Linux proc filesystem
+            r'(/dev/)',  # Linux device files
         ],
         'ldap_injection': [
             r'(\$\{jndi:)',  # ${jndi: (Log4Shell pattern)
             r'(ldap://)',  # LDAP protocol
             r'(rmi://)',  # RMI protocol
+            r'(\*\)\(uid)',  # LDAP escape sequence
+            r'(\|\(uid)',  # LDAP OR injection
         ],
         'xxe_attack': [
             r'(<!DOCTYPE[^>]*\[)',  # External entity declaration
             r'(<!ENTITY.*SYSTEM)',  # SYSTEM entity reference
-            r'(xml version)',  # XML declaration with potential XXE
+            r'(xml\s+version)',  # XML declaration with potential XXE
+            r'(SYSTEM\s+"[^"]*")',  # SYSTEM keyword in XML
         ],
         'nosql_injection': [
             r'(\{\s*\$ne)',  # {"$ne": ""} MongoDB
             r'(\{\s*\$gt)',  # {"$gt": ""} MongoDB
             r'(\{\s*\$regex)',  # {"$regex": ""} MongoDB
-            r'(db\.[a-z]+\.(insert|find|update))',  # MongoDB patterns
+            r'(\{\s*\$or)',  # {"$or": []} MongoDB
+            r'(db\.[a-z]+\.(?:insert|find|update))',  # MongoDB patterns
+            r'(\$where)',  # MongoDB $where operator
+            r'(\$ne)',  # $ne operator anywhere (not just {"$ne")
+            r'(\$gt|\$lt)',  # $gt or $lt operators
+            r'(\$regex)',  # $regex operator
         ],
         'crlf_injection': [
             r'(%0d%0a)',  # URL encoded CRLF
+            r'(%0d|%0a)',  # URL encoded CR or LF alone
             r'(\\r\\n)',  # Escaped CRLF
             r'(\r\n)',  # Actual CRLF
-            r'(Set-Cookie:)',  # Header injection
+            r'(Set-Cookie:)',  # Header injection attempt
+            r'(Content-Length:)',  # Trying to inject headers
         ],
         'file_inclusion': [
             r'(file://)',  # file:// protocol
-            r'(php://)',  # php:// wrapper
+            r'(php://)',  # php:// wrapper  
             r'(zip://)',  # zip:// wrapper
             r'(phar://)',  # phar:// wrapper
+            r'(\.\./)',  # Directory traversal in file param (escaped dots)
+            r'(/etc/passwd)',  # Etc passwd inclusion
+            r'(download\?|file\s*=)',  # Download endpoint with file param
         ],
         'buffer_overflow': [
-            r'(A{1000,})',  # Long string of A's
-            r'(%x%x%x%x)',  # Format string
-            r'(\x41{100,})',  # Hex A's
+            r'(A{500,})',  # Long string of A's (500+ repetitions)
+            r'(%x{20,})',  # Multiple format string specifiers
+            r'([A-Z]{2000,})',  # Very long alphabetic string
+            r'(\x41{100,})',  # Hex A's (100+)
         ],
         'authentication_bypass': [
+            r'(bearer\s+[a-z0-9.]+)',  # Bearer token in headers
+            r'(authorization:\s*bearer)',  # Suspicious auth header
             r'(Bearer\s+eyJ[A-Za-z0-9_-]+)',  # JWT token
-            r'(+admin|bypass|auth)',  # Common bypass keywords
-            r'(session_id=.*|token=)',  # Session manipulation
+            r'(eyJhbGc)',  # Base64 JWT header
+            r'(bypass\s*=|admin\s*=)',  # Bypass/admin parameters
+            r'(session_id\s*=.*|token\s*=)',  # Session manipulation
+            r'(\+admin|\*admin)',  # Wildcard admin tricks
         ],
         'privilege_escalation': [
-            r'(role\s*[=:]\s*admin)',  # role assignment
+            r'(role\s*[=:]\s*(?:admin|root))',  # role assignment to admin
             r'(user_id|uid|user_role)',  # Privilege related params
-            r'(is_admin|admin_flag)',  # Admin flags
+            r'(is_admin|admin_flag|role)',  # Admin-related parameters
+            r'(\broot\b|\badmin\b)',  # Common privilege keywords
         ],
         'scanner_detection': [
-            r'(sqlmap|nikto|nmap|masscan|nessus)',  # Scanner user agents
-            r'(Burp|ZAP|Metasploit)',  # Penetration testing tools
+            r'(sqlmap|nikto|nmap|masscan|nessus|acunetix)',  # Scanner signatures
+            r'(Burp|ZAP|Metasploit)',  # Penetration testing tools in UA
+            r'(sqlmap/|nikto/|nmap/)',  # Scanner versions
+            r'(w3af|OpenVAS|Qualys)',  # More scanners
         ],
     }
     
@@ -152,16 +194,12 @@ class SecurityRules:
     }
     
     # Pass Rules - Traffic to ignore (normal traffic)
+    # WARNING: Minimal pass rules only for completely safe endpoints
+    # User-Agent checks removed - attackers easily spoof browsers!
     PASS_RULES = {
         'health_check': {
             'check': lambda req: req.get('path') == 'health' and req.get('method') == 'GET',
-            'reason': 'Standard health check'
-        },
-        'browser_get_request': {
-            'check': lambda req: req.get('method') == 'GET' 
-                                and any(browser in (req.get('user_agent', '')).lower() 
-                                       for browser in ['chrome', 'firefox', 'safari', 'edge']),
-            'reason': 'Standard browser GET request'
+            'reason': 'Standard health check endpoint'
         },
         'static_files': {
             'check': lambda req: any(req.get('path', '').endswith(ext) 
@@ -176,12 +214,15 @@ class SecurityRules:
         Check request against known attack patterns
         Returns: (severity_score, triggered_rules_list)
         """
-        body_preview = request_data.get('request_body_preview', '').lower()
+        # URL-decode all parameters since proxy logs them encoded
+        body_preview = unquote(request_data.get('request_body_preview', '')).lower()
         path = request_data.get('path', '').lower()
         headers_str = json.dumps(request_data.get('headers', {})).lower()
+        user_agent = request_data.get('user_agent', '').lower()  # User-Agent for scanner detection
+        query = unquote_plus(request_data.get('query', '')).lower()  # URL-decode query (unquote_plus converts + to space)
         
-        # Combine all fields to search
-        combined_search = f"{body_preview} {path} {headers_str}"
+        # Combine all fields to search (including decoded query, headers, and user-agent)
+        combined_search = f"{body_preview} {path} {headers_str} {user_agent} {query}"
         
         triggered_rules = []
         max_score = 0
@@ -191,19 +232,17 @@ class SecurityRules:
                 try:
                     if re.search(pattern, combined_search, re.IGNORECASE):
                         triggered_rules.append(f"{attack_type}:{pattern[:30]}...")
-                        # Score based on attack type
+                        # Score based on attack type - be aggressive with known threats
                         if attack_type in ['sql_injection', 'xss_attack', 'command_injection']:
-                            max_score = max(max_score, 8)
+                            max_score = max(max_score, 9)  # Very high confidence
                         elif attack_type in ['ldap_injection', 'xxe_attack']:
-                            max_score = max(max_score, 9)
-                        elif attack_type in ['nosql_injection', 'crlf_injection', 'buffer_overflow']:
-                            max_score = max(max_score, 7)
-                        elif attack_type in ['file_inclusion', 'authentication_bypass', 'privilege_escalation']:
-                            max_score = max(max_score, 7)
+                            max_score = max(max_score, 10)  # Absolute threat
+                        elif attack_type in ['path_traversal', 'nosql_injection', 'crlf_injection']:
+                            max_score = max(max_score, 9)  # High confidence - well-known attacks
+                        elif attack_type in ['buffer_overflow', 'file_inclusion', 'authentication_bypass', 'privilege_escalation']:
+                            max_score = max(max_score, 8)  # High confidence
                         elif attack_type in ['scanner_detection']:
-                            max_score = max(max_score, 5)
-                        else:
-                            max_score = max(max_score, 6)
+                            max_score = max(max_score, 8)  # Known threat - scanners always alert immediately
                 except re.error:
                     pass
         
