@@ -1,36 +1,18 @@
 {
   "session_start": "2026-04-13T16:34:08.394531",
-  "total_requests_processed": 20,
+  "total_requests_processed": 30,
   "requests_by_status": {
-    "passed_tier1": 1,
-    "flagged_tier1": 19,
-    "analyzed_by_ai": 0,
+    "passed_tier1": 2,
+    "flagged_tier1": 28,
+    "analyzed_by_ai": 4,
     "threat_detected": 0
   },
   "threats_by_type": {},
   "top_attacking_ips": {
     "127.0.0.1": {
-      "count": 19,
+      "count": 28,
       "threats": [
-        "tier1",
-        "tier1",
-        "tier1",
-        "tier1",
-        "tier1",
-        "tier1",
-        "tier1",
-        "tier1",
-        "tier1",
-        "tier1",
-        "tier1",
-        "tier1",
-        "tier1",
-        "tier1",
-        "tier1",
-        "tier1",
-        "tier1",
-        "tier1",
-        "tier1"
+        "API_RATE_LIMITED"
       ]
     }
   }

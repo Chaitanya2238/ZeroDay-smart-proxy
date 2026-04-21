@@ -20,7 +20,7 @@ class AISecurityAnalyzer:
     """
     
     # Using Google Gemini API (free tier available)
-    MODEL = "gemini-2.0-flash"  # Latest available model
+    MODEL = "gemini-1.5-flash"  # More stable free tier model for background processing
     MAX_TOKENS = 500
     TEMPERATURE = 0.2  # Low temperature for consistent, focused analysis
     
@@ -88,9 +88,9 @@ Respond ONLY with valid JSON in this exact format:
         """
         self.request_count += 1
         
-        # Retry configuration
-        max_retries = 3
-        initial_delay = 2  # Start with 2 seconds
+        # Retry configuration - INCREASED for Gemini free tier (60 req/min quota)
+        max_retries = 4
+        initial_delay = 3  # Start with 3 seconds (was 2)
         
         for attempt in range(max_retries):
             try:
