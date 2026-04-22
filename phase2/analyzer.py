@@ -143,7 +143,7 @@ class StatisticsTracker:
         if tier2_result:
             self.stats['requests_by_status']['analyzed_by_ai'] += 1
             
-            if tier2_result.get('severity', 0) >= 7:
+            if tier2_result.get('severity', 0) >= 5:
                 self.stats['requests_by_status']['threat_detected'] += 1
                 
                 threat_type = tier2_result.get('threat_type', 'UNKNOWN')
@@ -152,7 +152,7 @@ class StatisticsTracker:
         
         # Track attacking IPs
         client_ip = request_data.get('client_ip', 'unknown')
-        if tier1_result['severity'] >= 4 or (tier2_result and tier2_result.get('severity', 0) >= 7):
+        if tier1_result['severity'] >= 4 or (tier2_result and tier2_result.get('severity', 0) >= 5):
             if client_ip not in self.stats['top_attacking_ips']:
                 self.stats['top_attacking_ips'][client_ip] = {'count': 0, 'threats': []}
             

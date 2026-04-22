@@ -147,33 +147,33 @@ class SecurityRules:
     ANOMALY_RULES = {
         'missing_user_agent': {
             'check': lambda req: not req.get('user_agent') or req.get('user_agent') == 'None',
-            'score': 3,
+            'score': 4,  # Increased from 3
             'reason': 'Missing or None User-Agent header (suspicious)'
         },
         'suspicious_user_agent': {
             'check': lambda req: any(bot in (req.get('user_agent', '')).lower() 
                                      for bot in ['sqlmap', 'scanner', 'nikto', 'nmap', 'masscan']),
-            'score': 4,
+            'score': 6,  # Increased from 4
             'reason': 'Known vulnerability scanner detected in User-Agent'
         },
         'body_size_anomaly': {
             'check': lambda req: req.get('response_size', 0) > 1048576,  # 1MB
-            'score': 3,
+            'score': 5,  # Increased from 3
             'reason': 'Response size exceeds 1MB (potential data exfiltration)'
         },
         'health_endpoint_large_body': {
             'check': lambda req: req.get('path') == 'health' and req.get('response_size', 0) > 10000,
-            'score': 5,
+            'score': 6,  # Increased from 5
             'reason': 'Health check endpoint with abnormally large response'
         },
         'empty_path_with_post': {
             'check': lambda req: req.get('path') == '' and req.get('method') == 'POST',
-            'score': 4,
-            'reason': 'POST to root path (suspicious request pattern)'
+            'score': 6,  # INCREASED from 4 - this is key anomaly!
+            'reason': 'POST to root path with empty/minimal body (anomaly attack pattern)'
         },
         'slow_response': {
             'check': lambda req: req.get('response_time_ms', 0) > 5000,
-            'score': 2,
+            'score': 3,  # Increased from 2
             'reason': 'Response time > 5 seconds (potential DoS or backend issue)'
         },
         'high_error_rate': {
@@ -265,8 +265,8 @@ class SecurityRules:
             except Exception:
                 pass
         
-        # Cap anomaly score at 6 (to allow AI override for ambiguous cases)
-        return min(total_score, 6), triggered_rules
+        # Cap anomaly score at 7 (allows moderate anomalies to trigger Tier 2 more consistently)
+        return min(total_score, 7), triggered_rules
     
     @staticmethod
     def check_pass_rules(request_data: Dict) -> Tuple[bool, str]:

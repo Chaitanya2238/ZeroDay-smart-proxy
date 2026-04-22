@@ -1,28 +1,143 @@
-# Environments
+# ============================================================
+# PYTHON BACKEND
+# ============================================================
+
+# Virtual Environments
 venv/
 env/
-.env
-.env.local
+ENV/
+.venv/
 
 # Python Cache
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+*.so
+.Python
 
-# Logs and Databases
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Environment Variables (DO NOT COMMIT API KEYS!)
+.env
+.env.local
+.env.*.local
+
+# Logs
 *.log
 proxy.log
+phase2_analyzer.log
 
-# IDE
+# IDE / Editor
 .vscode/
 .idea/
 *.swp
 *.swo
+*.sublime-project
+*.sublime-workspace
 
-# OS generated files
+# OS Generated Files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
 
-# Secrets and keys
+# Security
 secrets/
 *.pem
 *.key
+*.pfx
+
+# ============================================================
+# FRONTEND (Node.js / React)
+# ============================================================
+
+# Dependencies - CRITICAL: Don't commit this huge folder!
+Frontend/node_modules/
+Front-end/node_modules/
+Front-end\ \(Updated\)\ -\ Upload\ Ready/node_modules/
+
+# Build Output
+Frontend/dist/
+Frontend/build/
+Front-end/dist/
+Front-end/build/
+
+# Cache
+Frontend/.vite/
+Frontend/.eslintcache
+Frontend/.parcel-cache
+Frontend/.cache/
+
+# Environment
+Frontend/.env.local
+Frontend/.env.*.local
+
+# Logs
+Frontend/npm-debug.log*
+Frontend/yarn-debug.log*
+Frontend/yarn-error.log*
+Frontend/lerna-debug.log*
+
+# OS Files in Frontend
+Frontend/.DS_Store
+Frontend/Thumbs.db
+
+# Testing
+Frontend/coverage/
+Frontend/.nyc_output/
+
+# IDE in Frontend
+Frontend/.vscode/
+Frontend/.idea/
+
+# ============================================================
+# RUNTIME STATE (DO NOT COMMIT)
+# ============================================================
+
+# Runtime Logs (changes every run)
+proxy.log
+phase2_analyzer.log
+phase2_analysis.log
+
+# Runtime State Files (changes every run)
+phase2/analyzer_state.json
+phase2/analyzer_state.json.bak
+phase2/statistics.json.tmp
+phase2/alerts.json.bak
+
+# ============================================================
+# TEMPORARY / BUILD FILES
+# ============================================================
+
+*.tmp
+*.temp
+*.bak
+*.backup
+*.swp
+*~
+
+# Python build
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# ============================================================
+# PROJECT SPECIFIC
+# ============================================================
+
+# Test artifacts
+test_results/
+test_*.log
+
+# Postman local
+*.postman_environment.json.local
+
+# Generated files
+*.generated.py
