@@ -1,5 +1,42 @@
 {
   "alerts": [
-    
+    {
+      "alert_id": 1,
+      "timestamp": "2026-04-27T14:30:50.502805",
+      "severity": 0,
+      "threat_type": "NORMAL",
+      "confidence": 0.5,
+      "original_request": {
+        "method": "POST",
+        "path": "",
+        "body_preview": "",
+        "client_ip": "127.0.0.1",
+        "user_agent": "python-httpx/0.28.1",
+        "response_status": 200
+      },
+      "tier1_analysis": {
+        "severity": 6,
+        "category": "SUSPICIOUS",
+        "reason": "Static signatures: 0, Anomalies: 1",
+        "triggered_rules": [
+          "empty_path_with_post"
+        ],
+        "signature_score": 0,
+        "anomaly_score": 6,
+        "requires_ai": true
+      },
+      "tier2_analysis": {
+        "severity": 0,
+        "threat_type": "NORMAL",
+        "confidence": 0.5,
+        "is_zeroday": false,
+        "attack_vectors": [],
+        "reasoning": "Request pattern within normal parameters (score=0.046)",
+        "recommended_action": "allow",
+        "indicators": [],
+        "cve_reference": []
+      },
+      "recommended_action": "allow"
+    }
   ]
 }

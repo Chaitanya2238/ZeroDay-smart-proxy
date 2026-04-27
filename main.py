@@ -49,6 +49,19 @@ async def get_alerts():
         logger.error(f"Error reading alerts: {e}")
         return {"alerts": []}
 
+@app.get("/api/statistics")
+async def get_statistics():
+    """Serves the statistics.json file to the React dashboard"""
+    try:
+        stats_path = os.path.join(os.path.dirname(__file__), "phase2", "statistics.json")
+        if os.path.exists(stats_path):
+            with open(stats_path, "r") as f:
+                return json.load(f)
+        return {"total_requests_processed": 0}
+    except Exception as e:
+        logger.error(f"Error reading statistics: {e}")
+        return {"total_requests_processed": 0}
+
 @app.get("/favicon.ico", include_in_schema=False)
 async def favicon():
     return Response(status_code=204)

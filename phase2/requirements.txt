@@ -10,6 +10,11 @@ httpx>=0.23.0           # Async HTTP client
 # For data processing
 python-dateutil>=2.8.0  # Date utilities
 
+# For Isolation Forest ML training and inference
+pandas>=1.5.0          # Data processing
+scikit-learn>=1.0.0    # ML models (Isolation Forest)
+joblib>=1.1.0          # Model serialization
+
 # Development & Testing
 pytest>=7.0.0           # Testing framework
 pytest-asyncio>=0.20.0  # Async test support

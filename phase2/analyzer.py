@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from .rules import SecurityRules
-from .ai_engine import AISecurityAnalyzer
+from .tier2_inference import Tier2AI
 
 # Configure logging
 logging.basicConfig(
@@ -209,10 +209,10 @@ class SecurityAnalyzerPipeline:
         """Lazy initialize AI analyzer (only if needed)"""
         if self.ai_analyzer is None:
             try:
-                self.ai_analyzer = AISecurityAnalyzer()
-                logger.info("AI analyzer initialized")
+                self.ai_analyzer = Tier2AI()
+                logger.info("Tier 2 Isolation Forest analyzer initialized")
             except Exception as e:
-                logger.error(f"Could not initialize AI analyzer: {e}")
+                logger.error(f"Could not initialize Tier 2 analyzer: {e}")
     
     async def analyze_request(self, log_entry: Dict) -> Optional[Dict]:
         """
@@ -233,11 +233,11 @@ class SecurityAnalyzerPipeline:
         
         # Tier 2: AI analysis only for ambiguous cases (4-7 score)
         if tier1_result['requires_ai']:
-            logger.info(f"Sending to Tier 2 (AI): {log_entry.get('path')} (Score {tier1_result['severity']} is ambiguous)")
+            logger.info(f"Sending to Tier 2 (Isolation Forest): {log_entry.get('path')} (Score {tier1_result['severity']} is ambiguous)")
             self._init_ai_analyzer()
-            
+
             if self.ai_analyzer:
-                tier2_result = await self.ai_analyzer.analyze(log_entry)
+                tier2_result = self.ai_analyzer.analyze(log_entry)
                 logger.debug(f"Tier 2 result: severity={tier2_result.get('severity')}")
         else:
             if tier1_result['severity'] > 7:
@@ -249,12 +249,15 @@ class SecurityAnalyzerPipeline:
         # Determine if alert should be generated
         final_severity = tier2_result.get('severity', tier1_result['severity']) if tier2_result else tier1_result['severity']
         
-        if final_severity >= 4:  # Alert threshold (lowered to catch all zero-day threats)
-            alert = self._create_alert(log_entry, tier1_result, tier2_result, final_severity)
-            logger.warning(f"THREAT DETECTED: {alert['threat_type']} (severity={final_severity})")
-            return alert
+        # Create alert/log entry for ALL requests so they appear in the dashboard
+        alert = self._create_alert(log_entry, tier1_result, tier2_result, final_severity)
         
-        return None
+        if final_severity >= 4:  # Alert threshold
+            logger.warning(f"THREAT DETECTED: {alert['threat_type']} (severity={final_severity})")
+        else:
+            logger.info(f"Safe request recorded: {log_entry.get('path')} (severity={final_severity})")
+            
+        return alert
     
     def _create_alert(self, log_entry: Dict, tier1_result: Dict, tier2_result: Optional[Dict], severity: int) -> Dict:
         """Create an alert entry"""
@@ -338,13 +341,8 @@ class SecurityAnalyzerPipeline:
 
 
 # Entry point
-if __name__ == '__main__':
-    import sys
-    
-    # Get proxy log path from argument or use default
-    log_path = sys.argv[1] if len(sys.argv) > 1 else '../proxy.log'
-    
-    logger.info(f"Starting Phase 2 Analyzer for: {log_path}")
-    
-    pipeline = SecurityAnalyzerPipeline(proxy_log=log_path, check_interval=5)
-    pipeline.run()
+if __name__ == "__main__":
+    # Use "proxy.log" if running from smart-proxy root, or adjust path accordingly
+    log_path = "proxy.log" if os.path.exists("proxy.log") else "../proxy.log"
+    analyzer = SecurityAnalyzerPipeline(proxy_log=log_path)
+    analyzer.run()

@@ -1,6 +1,8 @@
 # rules.py - Tier 1: Heuristic Filter & Static Signatures
 import re
 import json
+import math
+from collections import Counter
 from typing import Dict, Tuple
 from urllib.parse import unquote, unquote_plus
 
@@ -150,6 +152,11 @@ class SecurityRules:
             'score': 4,  # Increased from 3
             'reason': 'Missing or None User-Agent header (suspicious)'
         },
+        'high_entropy_payload': {
+            'check': lambda req: SecurityRules._check_high_entropy(req),
+            'score': 6,
+            'reason': 'High entropy in small payload (potential packed/encrypted zero-day)'
+        },
         'suspicious_user_agent': {
             'check': lambda req: any(bot in (req.get('user_agent', '')).lower() 
                                      for bot in ['sqlmap', 'scanner', 'nikto', 'nmap', 'masscan']),
@@ -283,6 +290,36 @@ class SecurityRules:
         
         return False, None
     
+    @staticmethod
+    def calculate_shannon_entropy(data: str) -> float:
+        """
+        Calculates the Shannon entropy of a string to detect encrypted/packed payloads.
+        """
+        if not data:
+            return 0.0
+        entropy = 0.0
+        length = len(data)
+        counts = Counter(data)
+        for count in counts.values():
+            p_x = count / length
+            entropy += - p_x * math.log2(p_x)
+        return entropy
+
+    @staticmethod
+    def _check_high_entropy(req: Dict) -> bool:
+        """
+        Helper method to safely evaluate payload entropy with size constraints.
+        """
+        body = req.get('request_body_preview', '')
+
+        if not body:
+            return False
+
+        if len(body) >= 1024:
+            return False
+
+        return SecurityRules.calculate_shannon_entropy(body) > 7.5
+
     @staticmethod
     def analyze(request_data: Dict) -> Dict:
         """
