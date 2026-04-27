@@ -58,38 +58,29 @@ class Tier2AI:
 
         return [url_length, url_depth, body_length, entropy, special_char_ratio]
 
-    def _score_to_severity(self, anomaly_score: float, request_data: Dict) -> int:
+    def _score_to_severity(self, anomaly_score: float) -> int:
         """
-        Convert Isolation Forest score (-1 to 1) to severity (0-10).
-        IF returns: -1 for anomalies, 1 for normal
-        We use decision_function which gives raw scores.
+        Convert Isolation Forest score to severity (1-10).
+        Isolation Forest decision_function returns:
+        - Positive values: Normal (inliers)
+        - Negative values: Anomalies (outliers)
+        The more negative the score, the more anomalous the request.
         """
-        if anomaly_score < self.DEFAULT_SCORE_THRESHOLD:
-            base_severity = 5
+        # Mapping raw score to severity 1-10
+        if anomaly_score >= 0.15:
+            return 1  # Very normal
+        elif anomaly_score >= 0.05:
+            return 2  # Normal
+        elif anomaly_score >= 0.0:
+            return 3  # Slightly unusual
+        elif anomaly_score >= -0.05:
+            return 5  # Suspicious (Anomaly threshold)
+        elif anomaly_score >= -0.15:
+            return 7  # High confidence anomaly
+        elif anomaly_score >= -0.25:
+            return 9  # Very high confidence anomaly
         else:
-            base_severity = 0
-
-        indicators = []
-        threat_type = 'NORMAL'
-
-        body = request_data.get('request_body_preview', '')
-        method = request_data.get('method', 'GET')
-        path = request_data.get('path', '/')
-        user_agent = request_data.get('headers', {}).get('user-agent', '')
-
-        if method == 'POST' and path == '/' and not body:
-            base_severity += 3
-            indicators.append('EMPTY_POST_ROOT')
-            threat_type = 'EMPTY_POST_ROOT'
-
-        if not user_agent:
-            base_severity += 2
-            indicators.append('MISSING_USER_AGENT')
-
-        if base_severity > 10:
-            base_severity = 10
-
-        return base_severity
+            return 10 # Critical anomaly
 
     def analyze(self, request_data: Dict) -> Dict:
         """
@@ -120,7 +111,7 @@ class Tier2AI:
             prediction = self.model.predict(feature_vector)[0]
 
             is_anomaly = prediction == -1
-            severity = self._score_to_severity(raw_score, request_data)
+            severity = self._score_to_severity(raw_score)
 
             if is_anomaly:
                 threat_type = 'ANOMALY_ZERODAY'

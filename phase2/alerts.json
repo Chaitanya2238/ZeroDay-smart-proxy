@@ -2,8 +2,8 @@
   "alerts": [
     {
       "alert_id": 1,
-      "timestamp": "2026-04-27T14:30:50.502805",
-      "severity": 0,
+      "timestamp": "2026-04-27T14:54:27.570035",
+      "severity": 3,
       "threat_type": "NORMAL",
       "confidence": 0.5,
       "original_request": {
@@ -26,17 +26,46 @@
         "requires_ai": true
       },
       "tier2_analysis": {
-        "severity": 0,
+        "severity": 3,
         "threat_type": "NORMAL",
         "confidence": 0.5,
         "is_zeroday": false,
         "attack_vectors": [],
-        "reasoning": "Request pattern within normal parameters (score=0.046)",
+        "reasoning": "Request pattern within normal parameters (score=0.003)",
         "recommended_action": "allow",
         "indicators": [],
         "cve_reference": []
       },
       "recommended_action": "allow"
+    },
+    {
+      "alert_id": 2,
+      "timestamp": "2026-04-27T14:55:22.691178",
+      "severity": 9,
+      "threat_type": "KNOWN_THREAT",
+      "confidence": 0.0,
+      "original_request": {
+        "method": "POST",
+        "path": "",
+        "body_preview": "W.~q1UDhk7{ZVsH_@H{P!g49vVFk!(\\'@2.I|p[Z^OK>4vj;otJGKg5W9{r\\4l2$aE6AU)\\(Ky8LT!ovI]V!0<?;v6c{Jgti`wNO^\\vp:'uU`qS.nwtc_Be;Y_C[rQmsUS%,'-@PC\\<[Mwo7tk1l(Y",
+        "client_ip": "127.0.0.1",
+        "user_agent": "python-httpx/0.28.1",
+        "response_status": 200
+      },
+      "tier1_analysis": {
+        "severity": 9,
+        "category": "KNOWN_THREAT",
+        "reason": "Static signatures: 1, Anomalies: 1",
+        "triggered_rules": [
+          "command_injection:(`[^`]*`)...",
+          "empty_path_with_post"
+        ],
+        "signature_score": 9,
+        "anomaly_score": 6,
+        "requires_ai": false
+      },
+      "tier2_analysis": {},
+      "recommended_action": "investigate"
     }
   ]
 }

@@ -72,7 +72,7 @@ def train_model():
     # 4. Train the Isolation Forest
     # contamination=0.01 means we expect an extremely tight boundary
     print("🧠 Training Isolation Forest...")
-    model = IsolationForest(n_estimators=100, contamination=0.01, random_state=42)
+    model = IsolationForest(n_estimators=100, contamination=0.05, random_state=42)
     model.fit(training_data)
     
     # 5. Save the compiled model

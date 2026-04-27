@@ -1,18 +1,19 @@
 {
   "session_start": "2026-04-27T12:33:38.516986",
-  "total_requests_processed": 24,
+  "total_requests_processed": 26,
   "requests_by_status": {
     "passed_tier1": 2,
-    "flagged_tier1": 22,
-    "analyzed_by_ai": 3,
+    "flagged_tier1": 24,
+    "analyzed_by_ai": 4,
     "threat_detected": 0
   },
   "threats_by_type": {},
   "top_attacking_ips": {
     "127.0.0.1": {
-      "count": 22,
+      "count": 24,
       "threats": [
-        "NORMAL"
+        "NORMAL",
+        "tier1"
       ]
     }
   }
