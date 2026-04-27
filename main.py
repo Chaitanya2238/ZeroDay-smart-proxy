@@ -1,26 +1,57 @@
 # main.py
 from fastapi import FastAPI, Request, Response
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware  # ✨ NEW IMPORT
 import httpx
 import json
 import logging
+import os  # ✨ NEW IMPORT
 from datetime import datetime
-from config import TARGET_BACKEND # Imported from your config file
+from config import TARGET_BACKEND
 
-# Configure logging - console only (JSON logs go to proxy.log separately)
+# Configure logging - console only
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.StreamHandler()  # Console only, not to file
+        logging.StreamHandler()
     ]
 )
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Smart Proxy")
 
+# ✨ NEW: CORS Configuration
+# This allows your React frontend to make requests to this backend without browser security errors.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allows all origins for local development
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # Create a reusable HTTPX client
 client = httpx.AsyncClient(timeout=30.0)
+
+# ✨ NEW: The Frontend Integration Endpoint
+# MUST be placed before the catch-all proxy route!
+@app.get("/api/alerts")
+async def get_alerts():
+    """Serves the alerts.json file to the React dashboard"""
+    try:
+        alerts_path = os.path.join(os.path.dirname(__file__), "phase2", "alerts.json")
+        if os.path.exists(alerts_path):
+            with open(alerts_path, "r") as f:
+                return json.load(f)
+        return {"alerts": []}
+    except Exception as e:
+        logger.error(f"Error reading alerts: {e}")
+        return {"alerts": []}
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    return Response(status_code=204)
 
 @app.api_route("/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"])
 async def proxy(request: Request, path: str):
@@ -74,7 +105,7 @@ async def proxy(request: Request, path: str):
             "response_size": len(resp.content)
         }
         
-        # Write to the proxy.log file you touched earlier
+        # Write to the proxy.log file
         with open("proxy.log", "a") as f:
             f.write(json.dumps(log_entry) + "\n")
 

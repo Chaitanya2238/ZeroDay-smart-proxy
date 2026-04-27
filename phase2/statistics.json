@@ -1,16 +1,19 @@
 {
   "session_start": "2026-04-13T16:34:08.394531",
-  "total_requests_processed": 34,
+  "total_requests_processed": 75,
   "requests_by_status": {
-    "passed_tier1": 2,
-    "flagged_tier1": 32,
-    "analyzed_by_ai": 8,
-    "threat_detected": 0
+    "passed_tier1": 3,
+    "flagged_tier1": 72,
+    "analyzed_by_ai": 29,
+    "threat_detected": 13
   },
-  "threats_by_type": {},
+  "threats_by_type": {
+    "SERVICE_UNAVAILABLE_DEFENSIVE": 11,
+    "API_ERROR": 2
+  },
   "top_attacking_ips": {
     "127.0.0.1": {
-      "count": 32,
+      "count": 72,
       "threats": [
         
       ]

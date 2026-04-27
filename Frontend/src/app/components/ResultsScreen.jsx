@@ -14,7 +14,6 @@ import {
   getFilteredThreatData,
   getStatsCards,
   getThreatStats,
-  MOCK_THREAT_DATA,
   THREAT_LEVEL_OPTIONS
 } from "../lib/threats";
 import { Button } from "./ui/button";
@@ -26,18 +25,39 @@ import {
   SelectValue
 } from "./ui/select";
 import { DashboardPanel } from "./DashboardPanel";
+
+// 1. IMPORT YOUR CUSTOM HOOK
+import { useThreatAlerts } from "../../hooks/useThreatAlerts";
 function ResultsScreen({
   onNewScan,
   isRealTimeCapture,
   onToggleRealTime
 }) {
   const [filterLevel, setFilterLevel] = useState("all");
+  
+  // 2. FETCH LIVE DATA FROM YOUR FASTAPI BACKEND
+  const { alerts: realThreatData, isLoading } = useThreatAlerts(isRealTimeCapture);
+
+  // 3. COMPUTE STATS DYNAMICALLY BASED ON THE LIVE DATA
   const filteredData = useMemo(
-    () => getFilteredThreatData(MOCK_THREAT_DATA, filterLevel),
-    [filterLevel]
+    () => getFilteredThreatData(realThreatData, filterLevel),
+    [filterLevel, realThreatData]
   );
-  const stats = useMemo(() => getThreatStats(MOCK_THREAT_DATA), []);
-  const statCards = useMemo(() => getStatsCards(MOCK_THREAT_DATA), []);
+  
+  const stats = useMemo(() => getThreatStats(realThreatData), [realThreatData]);
+  const statCards = useMemo(() => getStatsCards(realThreatData), [realThreatData]);
+
+  // 4. SHOW A CLEAN LOADING STATE WHILE WAITING FOR FASTAPI
+  if (isLoading) {
+    return (
+      <div className="flex size-full items-center justify-center">
+        <p style={{ color: "#00d9ff", fontSize: "1.2rem", fontFamily: "monospace" }}>
+          Scanning live network traffic...
+        </p>
+      </div>
+    );
+  }
+
   return /* @__PURE__ */ jsx("div", { className: "size-full overflow-y-auto px-6 py-8", children: /* @__PURE__ */ jsxs("div", { className: "max-w-[1600px] mx-auto", children: [
     /* @__PURE__ */ jsxs(
       motion.div,
@@ -100,7 +120,7 @@ function ResultsScreen({
               children: [
                 /* @__PURE__ */ jsx(CheckCircle, { className: "w-5 h-5", style: { color: "#00ff88" } }),
                 /* @__PURE__ */ jsxs("span", { style: { color: "#00ff88" }, children: [
-                  "Scan completed successfully \u2014 ",
+                  "Active Monitoring \u2014 ",
                   stats.threats,
                   " threats detected"
                 ] })
@@ -140,7 +160,8 @@ function ResultsScreen({
         animate: { opacity: 1, y: 0 },
         transition: { delay: 0.7 },
         className: "mb-8",
-        children: /* @__PURE__ */ jsx(ThreatCharts, { data: MOCK_THREAT_DATA })
+        // 5. PASS LIVE DATA TO CHARTS
+        children: /* @__PURE__ */ jsx(ThreatCharts, { data: realThreatData }) 
       }
     ),
     /* @__PURE__ */ jsxs(
@@ -196,6 +217,7 @@ function ResultsScreen({
               )
             ] })
           ] }),
+          // 6. PASS FILTERED LIVE DATA TO TABLE
           /* @__PURE__ */ jsx(ThreatTable, { data: filteredData })
         ]
       }

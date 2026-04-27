@@ -243,3 +243,44 @@ export {
   getThreatDistribution,
   getThreatStats
 };
+
+// Add this at the very bottom of src/lib/threats.js
+
+export function mapBackendAlertsToFrontend(backendAlerts) {
+  // If there's no data or it's malformed, return an empty array
+  if (!backendAlerts || !Array.isArray(backendAlerts)) return [];
+
+  return backendAlerts.map((alert) => {
+    // 1. Map Severity Score (0-10) to UI Colors
+    let level = "safe";
+    if (alert.severity >= 9) level = "critical";
+    else if (alert.severity >= 7) level = "high";
+    else if (alert.severity >= 5) level = "medium";
+    else if (alert.severity >= 4) level = "low";
+
+    // 2. Format Confidence (0.0 to 1.0) into a Percentage (0 to 100)
+    let conf = alert.confidence;
+    if (conf <= 1.0) conf = conf * 100;
+
+    // 3. Extract the IP and Path safely
+    const originalReq = alert.original_request || {};
+    const method = originalReq.method || "UNKNOWN";
+    const path = originalReq.path || "/";
+    const ip = originalReq.client_ip || "Unknown IP";
+
+    // 4. Return the object perfectly formatted for the React ThreatTable
+    return {
+      id: `LOG-${alert.alert_id}`,
+      packetName: `${method} ${path}`,
+      protocol: "HTTP",
+      sourceIp: ip,
+      destIp: "Target Proxy", // Hardcoded since we are proxying
+      threatType: alert.threat_type || "Unknown Anomaly",
+      threatLevel: level,
+      confidence: Math.round(conf),
+      status: alert.severity >= 7 ? "blocked" : "monitored",
+      prevention: alert.recommended_action || "investigate",
+      timestamp: new Date(alert.timestamp).toLocaleString()
+    };
+  });
+}
