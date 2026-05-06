@@ -8,12 +8,10 @@ __version__ = "2.0.0"
 __description__ = "AI-powered security analysis for reverse proxy logs"
 
 from .rules import SecurityRules
-from .ai_engine import AISecurityAnalyzer
 from .analyzer import SecurityAnalyzerPipeline, LogTailer, StatisticsTracker
 
 __all__ = [
     'SecurityRules',
-    'AISecurityAnalyzer',
     'SecurityAnalyzerPipeline',
     'LogTailer',
     'StatisticsTracker'
