@@ -13,9 +13,9 @@ import {
   getFilteredThreatData,
   getStatsCards,
   getThreatStats,
-  MOCK_THREAT_DATA,
   THREAT_LEVEL_OPTIONS,
   type ThreatLevel,
+  type ThreatData,
 } from "../lib/threats";
 import { Button } from "./ui/button";
 import {
@@ -31,21 +31,23 @@ interface ResultsScreenProps {
   onNewScan: () => void;
   isRealTimeCapture: boolean;
   onToggleRealTime: (enabled: boolean) => void;
+  resultsData: ThreatData[];
 }
 
 export function ResultsScreen({
   onNewScan,
   isRealTimeCapture,
   onToggleRealTime,
+  resultsData,
 }: ResultsScreenProps) {
   const [filterLevel, setFilterLevel] = useState<ThreatLevel | "all">("all");
 
   const filteredData = useMemo(
-    () => getFilteredThreatData(MOCK_THREAT_DATA, filterLevel),
-    [filterLevel],
+    () => getFilteredThreatData(resultsData, filterLevel),
+    [resultsData, filterLevel],
   );
-  const stats = useMemo(() => getThreatStats(MOCK_THREAT_DATA), []);
-  const statCards = useMemo(() => getStatsCards(MOCK_THREAT_DATA), []);
+  const stats = useMemo(() => getThreatStats(resultsData), [resultsData]);
+  const statCards = useMemo(() => getStatsCards(resultsData), [resultsData]);
 
   return (
     <div className="size-full overflow-y-auto px-6 py-8">
@@ -148,7 +150,7 @@ export function ResultsScreen({
           transition={{ delay: 0.7 }}
           className="mb-8"
         >
-          <ThreatCharts data={MOCK_THREAT_DATA} />
+          <ThreatCharts data={resultsData} />
         </motion.div>
 
         {/* Table section */}

@@ -277,6 +277,7 @@ export function getAttackTypeCounts(data: ThreatData[]) {
   }));
 }
 
+
 export function getScanningStatus(progress: number) {
   if (progress < 30) {
     return "Parsing packet data...";
