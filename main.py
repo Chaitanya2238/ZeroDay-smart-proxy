@@ -22,7 +22,7 @@ from phase2.ai_engine import AISecurityAnalyzer as Tier2AI
 # Base directory and paths
 BASE_DIR = Path(__file__).resolve().parent
 PHASE2_DIR = BASE_DIR / "phase2"
-FRONTEND_DIR = BASE_DIR / "dashboard_frontend"
+FRONTEND_DIR = BASE_DIR / "Frontend/dist"
 PROXY_LOG_PATH = BASE_DIR / "proxy.log"
 ROOT_ALERTS_PATH = BASE_DIR / "alerts.json"
 ROOT_STATS_PATH = BASE_DIR / "statistics.json"
@@ -54,11 +54,13 @@ app.add_middleware(
 
 # Mount Dashboard Static Files if directory exists
 if FRONTEND_DIR.exists():
-    app.mount(
-        "/dashboard/static",
-        StaticFiles(directory=str(FRONTEND_DIR)),
-        name="dashboard-static",
-    )
+    assets_dir = FRONTEND_DIR / "assets"
+    if assets_dir.exists():
+        app.mount(
+            "/assets",
+            StaticFiles(directory=str(assets_dir)),
+            name="vite-assets",
+        )
 
 # Reusable HTTPX client
 client = httpx.AsyncClient(timeout=30.0)
@@ -532,7 +534,7 @@ async def analyze_manual_input(request: Request):
         tier2_result = None
 
         if tier1_result.get("requires_ai"):
-            tier2_result = get_tier2_analyzer().analyze(log_entry)
+            tier2_result = await get_tier2_analyzer().analyze(log_entry)
 
         final_severity = tier2_result.get("severity", tier1_result["severity"]) if tier2_result else tier1_result["severity"]
         alert = create_manual_alert(log_entry, tier1_result, tier2_result, final_severity)
