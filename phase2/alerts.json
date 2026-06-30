@@ -2,14 +2,14 @@
   "alerts": [
     {
       "alert_id": 1,
-      "timestamp": "2026-05-06T10:51:04.114854",
+      "timestamp": "2026-06-30T11:00:09.503906",
       "severity": 7,
       "threat_type": "ANOMALY_ZERODAY",
       "confidence": 0.5,
       "original_request": {
         "method": "POST",
         "path": "",
-        "body_preview": "}NZVSj~Z,VhLD('DHpLTO4'{{R}A/tN>Q&XVj6f-XzQ>ltYO|VC']['%%&6umv|~^v5qVr;xg.0,_r<TQ(/[UsWX\"w\"6?1b6d?}7fflXlz5+/\"n&]B(<S]P0/5)=]%I-E[I;;R\"]#w9OAwc4h>fuDu",
+        "body_preview": "UD-V}J,h-0)+pv%\\tcwmX<Iy\\Q@)E@SmHHXKL%!.uAtZ0qzekBWsD{hmt?']Rc_1IsXtYcQmZy)z:95iyH4CoXs%H{CSBh6]31gy{_TaF|MJ#{Cp:}pqkJ1tRsG;NRgg>!1P_heo{wOaA>0KJ;XAd0",
         "client_ip": "127.0.0.1",
         "user_agent": "python-httpx/0.28.1",
         "response_status": 200
@@ -44,58 +44,23 @@
     },
     {
       "alert_id": 2,
-      "timestamp": "2026-05-06T13:50:11.038283",
-      "severity": 9,
-      "threat_type": "KNOWN_THREAT",
+      "timestamp": "2026-06-30T11:01:19.645528",
+      "severity": 0,
+      "threat_type": "PASS_RULE",
       "confidence": 0.0,
       "original_request": {
-        "method": "POST",
-        "path": "",
-        "body_preview": "3W3s[8(ZxcqU]~d1*@\\>&oD#Y05i%mT9{H1R-kjBYOAsW@QTN6OO~8&:k\\3*:_?5Y$cMUdJ)d|DcZuaLqD4?fhl$1s=)Js${'_?-tG=6B,cxPo\\/d.lBZ|2S`}>18.]%y]\"R3U~ZHB,A'M3|*r/N2.",
+        "method": "GET",
+        "path": "health",
+        "body_preview": "",
         "client_ip": "127.0.0.1",
-        "user_agent": "python-httpx/0.28.1",
+        "user_agent": "Mozilla/5.0 (test-safe-request)",
         "response_status": 200
       },
       "tier1_analysis": {
-        "severity": 9,
-        "category": "KNOWN_THREAT",
-        "reason": "Static signatures: 2, Anomalies: 1",
-        "triggered_rules": [
-          "xss_attack:(\\$\\{.*\\})...",
-          "command_injection:(\\$\\{[^}]*\\})...",
-          "empty_path_with_post"
-        ],
-        "signature_score": 9,
-        "anomaly_score": 6,
-        "requires_ai": false
-      },
-      "tier2_analysis": {},
-      "recommended_action": "investigate"
-    },
-    {
-      "alert_id": 3,
-      "timestamp": "2026-05-06T13:50:56.143064",
-      "severity": 9,
-      "threat_type": "KNOWN_THREAT",
-      "confidence": 0.0,
-      "original_request": {
-        "method": "POST",
-        "path": "",
-        "body_preview": "1)6'gMVMh8T,i0)X]^1@W\\w#4T\".J'm#t+9<~uWPx-r4yU^8VNq$)h/o9E.-qr9Z$IfPzpOZoI4dt9J\\)8;N`P@fM6;*{@+,vHcOO2w\"_/FBs0uV0Z$U%n`\\|B<!_GfR-!Nf+)^CohW2)GMS;)L6t@",
-        "client_ip": "127.0.0.1",
-        "user_agent": "python-httpx/0.28.1",
-        "response_status": 200
-      },
-      "tier1_analysis": {
-        "severity": 9,
-        "category": "KNOWN_THREAT",
-        "reason": "Static signatures: 1, Anomalies: 1",
-        "triggered_rules": [
-          "command_injection:(`[^`]*`)...",
-          "empty_path_with_post"
-        ],
-        "signature_score": 9,
-        "anomaly_score": 6,
+        "severity": 0,
+        "category": "PASS_RULE",
+        "reason": "Standard health check endpoint",
+        "triggered_rules": [],
         "requires_ai": false
       },
       "tier2_analysis": {},

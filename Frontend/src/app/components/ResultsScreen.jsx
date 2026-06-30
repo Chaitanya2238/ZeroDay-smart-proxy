@@ -253,13 +253,40 @@ function ResultsScreen({
            "table-grid"
          )
        ]
-     }) : /* @__PURE__ */ jsx(
+     }) : /* @__PURE__ */ jsxs(
       motion.div,
       {
         initial: { opacity: 0, y: 20 },
         animate: { opacity: 1, y: 0 },
         transition: { duration: 0.4 },
-        children: /* @__PURE__ */ jsx(RaspMonitoring, { syscallData: raspData })
+        children: [
+          /* @__PURE__ */ (() => {
+            const hasAnomaly = raspData.some(d => d.is_anomaly);
+            if (hasAnomaly) {
+              return /* @__PURE__ */ jsxs(
+                motion.div,
+                {
+                  initial: { opacity: 0, x: -20 },
+                  animate: { opacity: 1, x: 0 },
+                  className: "mb-6 px-6 py-4 rounded-lg border flex items-center gap-3",
+                  style: {
+                    backgroundColor: "#f43f5e11",
+                    borderColor: "#f43f5e",
+                    boxShadow: "0 0 20px rgba(244,63,94,0.2)"
+                  },
+                  children: [
+                    /* @__PURE__ */ jsx(Shield, { className: "w-6 h-6", style: { color: "#f43f5e" } }),
+                    /* @__PURE__ */ jsxs("span", { style: { color: "#f43f5e", fontWeight: "bold", fontSize: "1rem" }, children: [
+                      "PRIVILEGE ESCALATION DETECTED - Real-time Threat Identified!"
+                    ] })
+                  ]
+                }
+              );
+            }
+            return null;
+          })(),
+          /* @__PURE__ */ jsx(RaspMonitoring, { syscallData: raspData })
+        ]
       },
       "rasp-grid"
     )

@@ -42,7 +42,18 @@ export function RaspMonitoring({ syscallData = [] }) {
   }, [syscallData]);
 
   const recentSyscalls = useMemo(() => {
-    if (syscallData.length > 0) return syscallData.slice(-10).reverse();
+    if (syscallData.length > 0) {
+      // Map backend data to frontend format
+      return syscallData.slice(-10).reverse().map(d => ({
+        id: d.id,
+        timestamp: d.timestamp,
+        syscall: d.syscall,
+        process: d.process,
+        pid: d.pid,
+        probability: d.markov_probability,
+        status: d.is_anomaly ? "ANOMALY" : "NORMAL"
+      }));
+    }
     
     // Default mock syscalls
     const commonSyscalls = ["read", "write", "openat", "close", "fstat", "mmap", "brk", "rt_sigaction"];

@@ -1,23 +1,20 @@
 {
   "session_start": "2026-04-27T12:33:38.516986",
-  "total_requests_processed": 30,
+  "total_requests_processed": 37,
   "requests_by_status": {
-    "passed_tier1": 2,
-    "flagged_tier1": 28,
-    "analyzed_by_ai": 6,
-    "threat_detected": 1
+    "passed_tier1": 5,
+    "flagged_tier1": 32,
+    "analyzed_by_ai": 8,
+    "threat_detected": 3
   },
   "threats_by_type": {
-    "ANOMALY_ZERODAY": 1
+    "ANOMALY_ZERODAY": 3
   },
   "top_attacking_ips": {
     "127.0.0.1": {
-      "count": 28,
+      "count": 32,
       "threats": [
-        "NORMAL",
-        "ANOMALY_ZERODAY",
-        "tier1",
-        "tier1"
+        "ANOMALY_ZERODAY"
       ]
     }
   }
