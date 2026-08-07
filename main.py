@@ -14,6 +14,9 @@ from config import TARGET_BACKEND
 from rasp_backend.markov_model import PrivEscMarkovModel
 from rasp_backend.process_monitor import get_monitor
 
+# Import email alert functionality
+from phase2.email_alerts import send_rasp_alert_email
+
 # Configure logging - console only
 logging.basicConfig(
     level=logging.INFO,
@@ -85,6 +88,32 @@ async def get_latest_rasp():
 @app.get("/favicon.ico", include_in_schema=False)
 async def favicon():
     return Response(status_code=204)
+
+@app.get("/health")
+async def health_check(request: Request):
+    """Simple health check endpoint - doesn't go through proxy but still logs"""
+    start_time = datetime.now()
+    
+    # Build log entry just like the proxy route does
+    log_entry = {
+        "timestamp": start_time.isoformat(),
+        "method": request.method,
+        "path": "health",
+        "query": str(request.query_params),
+        "client_ip": request.client.host if request.client else "unknown",
+        "user_agent": request.headers.get("user-agent"),
+        "headers": dict(request.headers),
+        "response_status": 200,
+        "response_time_ms": (datetime.now() - start_time).total_seconds() * 1000,
+        "request_body_preview": "",
+        "response_size": 0
+    }
+    
+    # Write to proxy.log just like proxy requests
+    with open("proxy.log", "a") as f:
+        f.write(json.dumps(log_entry) + "\n")
+    
+    return {"status": "healthy", "target": TARGET_BACKEND}
 
 @app.api_route("/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"])
 async def proxy(request: Request, path: str):
@@ -162,10 +191,6 @@ async def proxy(request: Request, path: str):
             content={"error": "Internal Server Error", "detail": str(e)}
         )
 
-@app.get("/health")
-async def health_check():
-    return {"status": "healthy", "target": TARGET_BACKEND}
-
 # Background monitoring task for RASP
 async def rasp_monitor_background_task():
     # List of process names/signatures that indicate Privilege Escalation attempts
@@ -232,6 +257,7 @@ async def rasp_monitor_background_task():
                 display_proc = attack_proc if attack_proc else (new_procs[-1] if new_procs else {"name": "system", "pid": "0"})
                 
                 data_point = {
+                    "alert_id": len(rasp_history) + 1,
                     "id": os.urandom(4).hex(),
                     "timestamp": datetime.now().isoformat(),
                     "syscall": "execve" if is_anomaly else "read",
@@ -239,6 +265,8 @@ async def rasp_monitor_background_task():
                     "pid": display_proc['pid'],
                     "markov_probability": round(markov_prob, 5),
                     "is_anomaly": is_anomaly,
+                    "is_zeroday": is_anomaly,  # RASP alerts are always considered zero-day
+                    "severity": 10 if is_anomaly else 0,
                     "threats": [
                         {"process": display_proc['name'], "pid": display_proc['pid'], 
                          "description": "LIVE Privilege Escalation detected by Markov Chain!"}
@@ -248,12 +276,15 @@ async def rasp_monitor_background_task():
                 if len(rasp_history) > 100:
                     rasp_history.pop(0)
                 
-                # Only write to RASP log file if there's an actual attack
+                # Only write to RASP log file and send email if there's an actual attack
                 if is_anomaly:
                     print(f"[DEBUG] Writing alert to rasp_activity.log!")
                     rasp_log_path = os.path.join(os.path.dirname(__file__), "rasp_backend", "rasp_activity.log")
                     with open(rasp_log_path, "a", encoding="utf-8") as f:
                         f.write(json.dumps(data_point) + "\n")
+                    # Send email to admin
+                    logger.info(f"Sending RASP email alert for zero-day attack")
+                    send_rasp_alert_email(data_point)
                 
         except Exception as e:
             logger.error(f"RASP monitoring error: {e}")

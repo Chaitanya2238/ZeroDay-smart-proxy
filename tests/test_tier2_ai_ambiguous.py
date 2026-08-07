@@ -15,16 +15,25 @@ import os
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+import random
+import string
+
+# Generate a high-entropy body to trigger Isolation Forest
+def generate_high_entropy_payload(size=150):
+    chars = string.ascii_letters + string.digits + string.punctuation
+    return ''.join(random.choice(chars) for _ in range(size))
+
 # Single ambiguous attack designed to score 4-7 in Tier 1 via ANOMALIES
 # Strategy: Use ONLY one attack to avoid Gemini rate limiting (60 req/min quota)
 TIER2_TEST_ATTACKS = [
     {
-        "name": "Empty Root POST (score: 4)",
-        "description": "POST to root path - anomaly rule triggers (empty_path_with_post)",
+        "name": "High Entropy Root POST (score: 4)",
+        "description": "POST to root path with unusual payload - anomaly rule triggers (empty_path_with_post) AND Isolation Forest detects high entropy",
         "method": "POST",
         "path": "/",
         "payload": "",
         "headers": {"Content-Type": "application/json"},
+        "body": generate_high_entropy_payload(),
         "expected_tier1_score": "4",
         "expected_tier2_action": "AI decides: Malicious root exploit or legitimate request?"
     }
@@ -47,7 +56,8 @@ async def send_attack(client, proxy_url, attack):
         
         # Handle POST vs GET
         if attack['method'] == 'POST':
-            response = await client.post(target_url, headers=attack['headers'], content="")
+            body = attack.get('body', "")
+            response = await client.post(target_url, headers=attack['headers'], content=body)
         else:
             response = await client.get(target_url, headers=attack['headers'])
         

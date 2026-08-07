@@ -14,6 +14,7 @@ load_dotenv()
 
 from .rules import SecurityRules
 from .tier2_inference import Tier2AI
+from .email_alerts import send_threat_email, send_rasp_alert_email
 
 # Configure logging
 logging.basicConfig(
@@ -252,8 +253,18 @@ class SecurityAnalyzerPipeline:
         # Create alert/log entry for ALL requests so they appear in the dashboard
         alert = self._create_alert(log_entry, tier1_result, tier2_result, final_severity)
         
+        # Mark as zero-day if tier2 detected it with high confidence
+        if tier2_result and tier2_result.get('severity', 0) >=7 and tier2_result.get('threat_type', '').upper() not in ['SQL_INJECTION', 'XSS', 'COMMAND_INJECTION', 'PATH_TRAVERSAL']:
+            alert['is_zeroday'] = True
+        else:
+            alert['is_zeroday'] = False
+        
         if final_severity >= 4:  # Alert threshold
             logger.warning(f"THREAT DETECTED: {alert['threat_type']} (severity={final_severity})")
+            # Send email only for serious threats or zero days
+            if final_severity >= 6 or alert['is_zeroday']:
+                logger.info(f"Sending email alert for threat: {alert['threat_type']}")
+                send_threat_email(alert)
         else:
             logger.info(f"Safe request recorded: {log_entry.get('path')} (severity={final_severity})")
             
